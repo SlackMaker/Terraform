@@ -1,0 +1,7 @@
+---
+- name: Instalar WordPress na instância EC2
+  hosts: wordpress
+  become: yes
+  roles:
+    - wordpress
+

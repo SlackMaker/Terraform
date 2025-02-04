@@ -1,0 +1,70 @@
+---
+- name: Atualizar apt e instalar dependências necessárias
+  apt:
+    update_cache: yes
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present
+
+- name: Adicionar repositório oficial do Docker
+  shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  args:
+    creates: /etc/apt/trusted.gpg.d/docker.asc
+
+- name: Adicionar repositório Docker ao apt
+  apt_repository:
+    repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable'  # Substitua $(lsb_release -cs) por 'jammy'
+    state: present
+
+- name: Atualizar apt após adicionar o repositório Docker
+  apt:
+    update_cache: yes
+    state: present
+
+- name: Instalar Docker
+  apt:
+    name: docker-ce
+    state: present
+
+- name: Instalar Docker Compose
+  shell: |
+    curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+  args:
+    creates: /usr/local/bin/docker-compose
+
+- name: Adicionar o usuário atual ao grupo docker
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: Criar diretório para o WordPress
+  file:
+    path: /home/{{ ansible_user }}/wordpress
+    state: directory
+    mode: '0755'
+
+- name: Criar arquivo docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /home/{{ ansible_user }}/wordpress/docker-compose.yml
+    mode: '0644'
+
+- name: Subir o ambiente WordPress com Docker Compose
+  command: docker-compose -f /home/{{ ansible_user }}/wordpress/docker-compose.yml up -d
+  args:
+    chdir: /home/{{ ansible_user }}/wordpress
+
+- name: Verificar se os containers estão em execução
+  command: docker ps
+  register: docker_ps
+  changed_when: false
+
+- name: Exibir os containers em execução
+  debug:
+    var: docker_ps.stdout_lines
+

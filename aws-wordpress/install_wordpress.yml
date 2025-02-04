@@ -1,0 +1,8 @@
+---
+- name: Configurar WordPress em servidor Ubuntu - AWS
+  hosts: wordpress_servers  # Define o grupo de hosts no arquivo de inventário (inventory.ini)
+  become: yes               # Eleva as permissões para rodar como sudo
+  vars_files:
+    - wordpress/vars/main.yml
+  roles:
+    - wordpress
